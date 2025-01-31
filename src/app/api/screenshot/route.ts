@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chromium } from "playwright";
+import playwright from 'playwright-core';
 
 export async function GET(request: Request) {
     try {
@@ -10,55 +10,51 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "URL is required" }, { status: 400 });
         }
 
-        const browser = await chromium.launch({
+        const browser = await playwright.chromium.launch({
             headless: true,
             args: [
-                '--no-sandbox', 
+                '--no-sandbox',
                 '--disable-setuid-sandbox',
-                '--disable-web-security',
-                '--disable-features=IsolateOrigins,site-per-process'
+                '--disable-gpu',
+                '--disable-dev-shm-usage'
             ]
         });
 
         const context = await browser.newContext({
-            // Optional: Add more context options
             viewport: { width: 1280, height: 720 },
             bypassCSP: true
         });
 
         const page = await context.newPage();
-        
+
         try {
             await page.goto(url, { 
                 waitUntil: "networkidle", 
-                timeout: 90000  // Increased timeout
+                timeout: 30000 
             });
         } catch (navigationError) {
             console.error("Navigation error:", navigationError);
             await browser.close();
             return NextResponse.json(
-                { error: "Failed to navigate to URL", details: navigationError },
+                { error: "Navigation failed", details: String(navigationError) },
                 { status: 500 }
             );
         }
 
         const screenshotBuffer = await page.screenshot({
-            fullPage: true,  // Capture entire page
-            type: 'png'
+            fullPage: true
         });
 
         await browser.close();
 
         return new NextResponse(screenshotBuffer, {
-            headers: {
-                "Content-Type": "image/png",
-            },
+            headers: { "Content-Type": "image/png" }
         });
     } catch (error) {
-        console.error("Comprehensive error capturing screenshot:", error);
+        console.error("Screenshot capture error:", error);
         return NextResponse.json(
-            { error: "Failed to capture screenshot", details: error },
-            { status: 500 },
+            { error: "Failed to capture screenshot", details: String(error) },
+            { status: 500 }
         );
     }
 }
