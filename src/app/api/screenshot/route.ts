@@ -13,7 +13,6 @@ export async function GET(request: Request) {
     // Lançando o navegador com Playwright
     const browser = await chromium.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
     const page = await browser.newPage();
