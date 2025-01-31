@@ -1,35 +1,38 @@
 import { NextResponse } from "next/server";
-import puppeteer from "puppeteer";
+import { chromium } from "playwright"; // ou outro navegador, como 'firefox' ou 'webkit'
 
 export async function GET(request: Request) {
-	try {
-		const { searchParams } = new URL(request.url);
-		const url = searchParams.get("url");
+  try {
+    const { searchParams } = new URL(request.url);
+    const url = searchParams.get("url");
 
-		if (!url) {
-			return NextResponse.json({ error: "URL is required" }, { status: 400 });
-		}
+    if (!url) {
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
+    }
 
-		const browser = await puppeteer.launch({
-			headless: true,
-			args: ["--no-sandbox", "--disable-setuid-sandbox"],
-		});
-		const page = await browser.newPage();
-		await page.goto(url, { waitUntil: "domcontentloaded" });
+    // Lançando o navegador com Playwright
+    const browser = await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
-		const screenshotBuffer = await page.screenshot();
-		await browser.close();
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "domcontentloaded" });
 
-		return new NextResponse(screenshotBuffer, {
-			headers: {
-				"Content-Type": "image/png",
-			},
-		});
-	} catch (error) {
-		console.error("Error capturing screenshot:", error);
-		return NextResponse.json(
-			{ error: "Failed to capture screenshot" },
-			{ status: 500 },
-		);
-	}
+    // Capturando o screenshot
+    const screenshotBuffer = await page.screenshot();
+    await browser.close();
+
+    return new NextResponse(screenshotBuffer, {
+      headers: {
+        "Content-Type": "image/png",
+      },
+    });
+  } catch (error) {
+    console.error("Error capturing screenshot:", error);
+    return NextResponse.json(
+      { error: "Failed to capture screenshot" },
+      { status: 500 }
+    );
+  }
 }
