@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronRight, ExternalLink, Plus, X } from "lucide-react";
+import { ExternalLink, Plus, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
