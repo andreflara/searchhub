@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ExternalLink, Plus, X, Edit } from "lucide-react";
+import type React from "react";
+import { useState, useEffect } from "react";
+import { ExternalLink, Plus, X, Edit, Trash2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
-// Definindo o tipo do Link
 type LinkType = {
   id: number | null;
   title: string;
@@ -14,11 +13,16 @@ type LinkType = {
   image: string;
 };
 
-export default function LinksGroup() {
-  // Definindo o estado de links com o tipo LinkType[]
-  const [links, setLinks] = useState<LinkType[]>([]);
+type PlaceholderImageProps = {
+  title: string;
+};
 
-  // Definindo o estado do link atual com o tipo LinkType
+const PlaceholderImage: React.FC<PlaceholderImageProps> = ({ title }) => (
+  <div className="w-full h-full ">{title}</div>
+);
+
+export default function LinksGroup() {
+  const [links, setLinks] = useState<LinkType[]>([]);
   const [currentLink, setCurrentLink] = useState<LinkType>({
     id: null,
     title: "",
@@ -26,10 +30,9 @@ export default function LinksGroup() {
     link: "",
     image: "",
   });
-
   const [showForm, setShowForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Carregando os links do localStorage
   useEffect(() => {
     const storedLinks = localStorage.getItem("userLinks");
     if (storedLinks) {
@@ -37,27 +40,61 @@ export default function LinksGroup() {
     }
   }, []);
 
-  // Salvando os links no localStorage
   useEffect(() => {
-    if (links.length > 0) {
-      localStorage.setItem("userLinks", JSON.stringify(links));
-    }
+    localStorage.setItem("userLinks", JSON.stringify(links));
   }, [links]);
 
-  // Função para salvar ou editar o link
-  const handleSave = () => {
+  const fetchUrlMetadata = async (url: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `/api/preview?url=${encodeURIComponent(url)}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Erro na resposta da API: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setCurrentLink((prev) => ({
+        ...prev,
+        title: data.title || prev.title,
+        description: data.description || prev.description,
+        image: data.image || prev.image,
+        link: url,
+      }));
+    } catch (error) {
+      console.error("Erro ao buscar metadados:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setCurrentLink((prev) => ({ ...prev, link: url }));
+
+    if (url?.startsWith("http")) {
+      await fetchUrlMetadata(url);
+    }
+  };
+
+  const handleSave = async () => {
     if (!currentLink.title || !currentLink.link) {
       alert("Título e URL são obrigatórios!");
       return;
     }
 
     if (currentLink.id !== null) {
-      // Editando link existente
       setLinks(
         links.map((link) => (link.id === currentLink.id ? currentLink : link))
       );
     } else {
-      // Adicionando um novo link
       setLinks([...links, { ...currentLink, id: Date.now() }]);
     }
 
@@ -71,14 +108,19 @@ export default function LinksGroup() {
     setShowForm(false);
   };
 
-  // Função para editar um link
   const handleEdit = (link: LinkType) => {
     setCurrentLink(link);
     setShowForm(true);
   };
 
+  const handleDelete = (id: number) => {
+    if (window.confirm("Tem certeza que deseja excluir este link?")) {
+      setLinks(links.filter((link) => link.id !== id));
+    }
+  };
+
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-black text-white py-6 min-h-screen relative">
+    <div className="min-h-screen relative mt-4 ">
       <div className="mx-auto w-full">
         <div className="grid gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {links.map((link) => (
@@ -89,21 +131,23 @@ export default function LinksGroup() {
                 rel="noopener noreferrer"
                 className="block"
               >
-                <div className="rounded-xl bg-black border border-gray-700 shadow-lg transition-shadow duration-300 overflow-hidden h-[250px] flex flex-col">
+                <div className="rounded-md bg-black border border-gray-700 shadow-lg transition-shadow duration-300 overflow-hidden h-[250px] flex flex-col">
                   <div className="relative w-full h-40">
-                    <Image
-                      src={link.image || "/placeholder.png"}
-                      alt={link.title}
-                      className="object-cover mx-auto"
-                      width={200}
-                      height={200}
-                    />
+                    {link.image ? (
+                      <img
+                        src={link.image}
+                        alt={link.title}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <PlaceholderImage title={link.title} />
+                    )}
                     <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <ExternalLink className="w-6 h-6 text-white" />
                     </div>
                   </div>
                   <div className="p-4 flex flex-col flex-grow justify-between">
-                    <h2 className="text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2">
+                    <h2 className="text-xl font-semibold group-hover:text-blue-500 transition-colors line-clamp-2">
                       {link.title}
                     </h2>
                     <p className="text-gray-400 text-sm line-clamp-3">
@@ -112,14 +156,22 @@ export default function LinksGroup() {
                   </div>
                 </div>
               </Link>
-              {/* O botão agora só aparecerá quando o mouse estiver sobre o link */}
-              <button
-                type="button"
-                onClick={() => handleEdit(link)}
-                className="absolute top-2 right-2 bg-gray-800 p-1 rounded-full hover:bg-gray-600 transition opacity-0 group-hover:opacity-100"
-              >
-                <Edit className="w-4 h-4 text-white" />
-              </button>
+              <div className="absolute top-2 right-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleEdit(link)}
+                  className="bg-gray-800 p-1 rounded-full hover:bg-gray-600 transition opacity-0 group-hover:opacity-100"
+                >
+                  <Edit className="w-4 h-4 text-white" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => link.id && handleDelete(link.id)}
+                  className="bg-red-800 p-1 rounded-full hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 className="w-4 h-4 text-white" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -127,7 +179,7 @@ export default function LinksGroup() {
 
       <button
         type="button"
-        className="fixed bottom-6 right-6 bg-primary text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform"
+        className="fixed bottom-6 right-6 bg-gray-500 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform"
         onClick={() => setShowForm(!showForm)}
       >
         {showForm ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
@@ -143,6 +195,20 @@ export default function LinksGroup() {
         <h2 className="text-2xl font-semibold mb-4">
           {currentLink.id ? "Editar Link" : "Adicionar Novo Link"}
         </h2>
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="URL"
+            className="w-full p-2 mb-2 rounded bg-gray-700 text-white pr-10"
+            value={currentLink.link}
+            onChange={handleUrlChange}
+          />
+          {isLoading && (
+            <div className="absolute right-2 top-2">
+              <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
+            </div>
+          )}
+        </div>
         <input
           type="text"
           placeholder="Título"
@@ -163,15 +229,6 @@ export default function LinksGroup() {
         />
         <input
           type="text"
-          placeholder="URL"
-          className="w-full p-2 mb-2 rounded bg-gray-700 text-white"
-          value={currentLink.link}
-          onChange={(e) =>
-            setCurrentLink({ ...currentLink, link: e.target.value })
-          }
-        />
-        <input
-          type="text"
           placeholder="URL da Imagem (opcional)"
           className="w-full p-2 mb-4 rounded bg-gray-700 text-white"
           value={currentLink.image}
@@ -182,7 +239,7 @@ export default function LinksGroup() {
         <button
           type="button"
           onClick={handleSave}
-          className="bg-primary text-white px-4 py-2 rounded w-full"
+          className="bg-gray-500 text-white px-4 py-2 rounded w-full hover:bg-gray-600 transition-colors"
         >
           {currentLink.id ? "Salvar Alterações" : "Adicionar Link"}
         </button>

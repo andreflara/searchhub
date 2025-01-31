@@ -9,14 +9,18 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "cheerio": "^1.0.0",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^0.474.0",
     "next": "15.1.6",
+    "puppeteer": "^24.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "styled-components": "^6.1.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/cheerio": "^0.22.35",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
