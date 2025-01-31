@@ -19,7 +19,7 @@ type PlaceholderImageProps = {
 };
 
 const PlaceholderImage: React.FC<PlaceholderImageProps> = ({ title }) => (
-  <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-400">
+  <div className="w-full h-full font-bold text-xl flex items-center justify-center bg-gray-800 text-gray-400">
     {title}
   </div>
 );
@@ -69,29 +69,24 @@ export default function LinksGroup() {
   const fetchUrlMetadata = async (url: string) => {
     try {
       setIsLoading(true);
+
+      // Format URL if no protocol
+      const formattedUrl = url.startsWith("http") ? url : `https://${url}`;
+
       const response = await fetch(
-        `/api/preview?url=${encodeURIComponent(url)}`
+        `/api/screenshot?url=${encodeURIComponent(formattedUrl)}`
       );
-
-      if (!response.ok) {
-        throw new Error(`Error in API response: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      const imageBlob = await response.blob();
+      const imageUrl = URL.createObjectURL(imageBlob);
 
       setCurrentLink((prev) => ({
         ...prev,
-        title: data.title || prev.title,
-        description: data.description || prev.description,
-        image: data.image || prev.image,
-        link: url,
+        link: formattedUrl,
+        title: prev.title || getSiteNameFromUrl(formattedUrl),
+        image: imageUrl,
       }));
     } catch (error) {
-      console.error("Error fetching metadata:", error);
+      console.error("Error fetching screenshot:", error);
     } finally {
       setIsLoading(false);
     }
@@ -103,6 +98,16 @@ export default function LinksGroup() {
 
     if (url?.startsWith("http")) {
       await fetchUrlMetadata(url);
+    }
+  };
+
+  const getSiteNameFromUrl = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname;
+      return hostname.replace("www.", "");
+    } catch (error) {
+      return "";
     }
   };
 
@@ -154,26 +159,27 @@ export default function LinksGroup() {
                 rel="noopener noreferrer"
                 className="block"
               >
-                <div className="rounded-md bg-black border border-gray-700 shadow-lg transition-shadow duration-300 overflow-hidden h-[250px] flex flex-col">
-                  <div className="relative w-full h-40">
+                <div className="rounded-md bg-black border border-gray-700 shadow-lg transition-shadow duration-300 overflow-hidden h-[225px] flex flex-col">
+                  <div className="relative w-full">
                     {link.image ? (
                       <img
                         src={link.image}
                         alt={link.title}
-                        className="object-cover w-full h-full"
+                        className="object-cover h-[160px] w-full"
                       />
                     ) : (
                       <PlaceholderImage title={link.title} />
                     )}
+
                     <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <ExternalLink className="w-6 h-6 text-white" />
                     </div>
                   </div>
-                  <div className="p-4 flex flex-col flex-grow justify-between">
-                    <h2 className="text-xl font-semibold group-hover:text-blue-500 transition-colors line-clamp-2">
+                  <div className="pl-2 flex flex-col flex-grow">
+                    <h2 className="text-md font-semibold group-hover:text-blue-500 transition-colors line-clamp-2">
                       {link.title}
                     </h2>
-                    <p className="text-gray-400 text-sm line-clamp-3 mb-2">
+                    <p className="text-gray-400 text-sm line-clamp-3 ">
                       {link.description}
                     </p>
                     {link.tags.length > 0 && (
