@@ -68,29 +68,36 @@ export default function LinksGroup() {
 
   const fetchUrlMetadata = async (url: string) => {
     try {
-      setIsLoading(true);
+        setIsLoading(true);
 
-      // Format URL if no protocol
-      const formattedUrl = url.startsWith("http") ? url : `https://${url}`;
+        // Formata a URL se necessário
+        const formattedUrl = url.startsWith("http") ? url : `https://${url}`;
 
-      const response = await fetch(
-        `/api/screenshot?url=${encodeURIComponent(formattedUrl)}`
-      );
-      const imageBlob = await response.blob();
-      const imageUrl = URL.createObjectURL(imageBlob);
+        const response = await fetch(
+            `/api/opengraph?url=${encodeURIComponent(formattedUrl)}`
+        );
 
-      setCurrentLink((prev) => ({
-        ...prev,
-        link: formattedUrl,
-        title: prev.title || getSiteNameFromUrl(formattedUrl),
-        image: imageUrl,
-      }));
+        const data = await response.json();
+
+        if (data.error) {
+            console.error("Erro ao buscar OpenGraph:", data.error);
+            return;
+        }
+
+        setCurrentLink((prev) => ({
+            ...prev,
+            link: formattedUrl,
+            title: prev.title || data.title || getSiteNameFromUrl(formattedUrl),
+            description: data.description || "",
+            image: data.image || "",
+        }));
     } catch (error) {
-      console.error("Error fetching screenshot:", error);
+        console.error("Erro ao buscar metadados:", error);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
+
 
   const handleUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
