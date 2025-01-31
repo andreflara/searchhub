@@ -11,6 +11,7 @@ type LinkType = {
   description: string;
   link: string;
   image: string;
+  tags: string[];
 };
 
 type PlaceholderImageProps = {
@@ -18,7 +19,9 @@ type PlaceholderImageProps = {
 };
 
 const PlaceholderImage: React.FC<PlaceholderImageProps> = ({ title }) => (
-  <div className="w-full h-full ">{title}</div>
+  <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-400">
+    {title}
+  </div>
 );
 
 export default function LinksGroup() {
@@ -29,7 +32,9 @@ export default function LinksGroup() {
     description: "",
     link: "",
     image: "",
+    tags: [],
   });
+  const [currentTag, setCurrentTag] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,6 +49,23 @@ export default function LinksGroup() {
     localStorage.setItem("userLinks", JSON.stringify(links));
   }, [links]);
 
+  const handleAddTag = () => {
+    if (currentTag.trim() && !currentLink.tags.includes(currentTag.trim())) {
+      setCurrentLink({
+        ...currentLink,
+        tags: [...currentLink.tags, currentTag.trim()],
+      });
+      setCurrentTag("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setCurrentLink({
+      ...currentLink,
+      tags: currentLink.tags.filter((tag) => tag !== tagToRemove),
+    });
+  };
+
   const fetchUrlMetadata = async (url: string) => {
     try {
       setIsLoading(true);
@@ -52,7 +74,7 @@ export default function LinksGroup() {
       );
 
       if (!response.ok) {
-        throw new Error(`Erro na resposta da API: ${response.status}`);
+        throw new Error(`Error in API response: ${response.status}`);
       }
 
       const data = await response.json();
@@ -69,7 +91,7 @@ export default function LinksGroup() {
         link: url,
       }));
     } catch (error) {
-      console.error("Erro ao buscar metadados:", error);
+      console.error("Error fetching metadata:", error);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +108,7 @@ export default function LinksGroup() {
 
   const handleSave = async () => {
     if (!currentLink.title || !currentLink.link) {
-      alert("Título e URL são obrigatórios!");
+      alert("Title and URL are required!");
       return;
     }
 
@@ -104,6 +126,7 @@ export default function LinksGroup() {
       description: "",
       link: "",
       image: "",
+      tags: [],
     });
     setShowForm(false);
   };
@@ -114,13 +137,13 @@ export default function LinksGroup() {
   };
 
   const handleDelete = (id: number) => {
-    if (window.confirm("Tem certeza que deseja excluir este link?")) {
+    if (window.confirm("Are you sure you want to delete this link?")) {
       setLinks(links.filter((link) => link.id !== id));
     }
   };
 
   return (
-    <div className="min-h-screen relative mt-4 ">
+    <div className="min-h-screen relative mt-4">
       <div className="mx-auto w-full">
         <div className="grid gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {links.map((link) => (
@@ -150,9 +173,21 @@ export default function LinksGroup() {
                     <h2 className="text-xl font-semibold group-hover:text-blue-500 transition-colors line-clamp-2">
                       {link.title}
                     </h2>
-                    <p className="text-gray-400 text-sm line-clamp-3">
+                    <p className="text-gray-400 text-sm line-clamp-3 mb-2">
                       {link.description}
                     </p>
+                    {link.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {link.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full text-xs"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Link>
@@ -193,56 +228,93 @@ export default function LinksGroup() {
         }`}
       >
         <h2 className="text-2xl font-semibold mb-4">
-          {currentLink.id ? "Editar Link" : "Adicionar Novo Link"}
+          {currentLink.id ? "Edit Link" : "Add New Link"}
         </h2>
-        <div className="relative">
+        <div className="space-y-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="URL"
+              className="w-full p-2 rounded bg-gray-700 text-white pr-10"
+              value={currentLink.link}
+              onChange={handleUrlChange}
+            />
+            {isLoading && (
+              <div className="absolute right-2 top-2">
+                <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+              </div>
+            )}
+          </div>
           <input
             type="text"
-            placeholder="URL"
-            className="w-full p-2 mb-2 rounded bg-gray-700 text-white pr-10"
-            value={currentLink.link}
-            onChange={handleUrlChange}
+            placeholder="Title"
+            className="w-full p-2 rounded bg-gray-700 text-white"
+            value={currentLink.title}
+            onChange={(e) =>
+              setCurrentLink({ ...currentLink, title: e.target.value })
+            }
           />
-          {isLoading && (
-            <div className="absolute right-2 top-2">
-              <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
+          <textarea
+            placeholder="Description"
+            className="w-full p-2 rounded bg-gray-700 text-white resize-none h-20"
+            value={currentLink.description}
+            onChange={(e) =>
+              setCurrentLink({ ...currentLink, description: e.target.value })
+            }
+          />
+          <input
+            type="text"
+            placeholder="Image URL (optional)"
+            className="w-full p-2 rounded bg-gray-700 text-white"
+            value={currentLink.image}
+            onChange={(e) =>
+              setCurrentLink({ ...currentLink, image: e.target.value })
+            }
+          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Add tag"
+              className="flex-1 p-2 rounded bg-gray-700 text-white"
+              value={currentTag}
+              onChange={(e) => setCurrentTag(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleAddTag()}
+            />
+            <button
+              type="button"
+              onClick={handleAddTag}
+              className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+          {currentLink.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {currentLink.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-gray-700 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(tag)}
+                    className="hover:text-red-400"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
             </div>
           )}
+          <button
+            type="button"
+            onClick={handleSave}
+            className="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700 transition-colors"
+          >
+            {currentLink.id ? "Save Changes" : "Add Link"}
+          </button>
         </div>
-        <input
-          type="text"
-          placeholder="Título"
-          className="w-full p-2 mb-2 rounded bg-gray-700 text-white"
-          value={currentLink.title}
-          onChange={(e) =>
-            setCurrentLink({ ...currentLink, title: e.target.value })
-          }
-        />
-        <input
-          type="text"
-          placeholder="Descrição"
-          className="w-full p-2 mb-2 rounded bg-gray-700 text-white"
-          value={currentLink.description}
-          onChange={(e) =>
-            setCurrentLink({ ...currentLink, description: e.target.value })
-          }
-        />
-        <input
-          type="text"
-          placeholder="URL da Imagem (opcional)"
-          className="w-full p-2 mb-4 rounded bg-gray-700 text-white"
-          value={currentLink.image}
-          onChange={(e) =>
-            setCurrentLink({ ...currentLink, image: e.target.value })
-          }
-        />
-        <button
-          type="button"
-          onClick={handleSave}
-          className="bg-gray-500 text-white px-4 py-2 rounded w-full hover:bg-gray-600 transition-colors"
-        >
-          {currentLink.id ? "Salvar Alterações" : "Adicionar Link"}
-        </button>
       </div>
     </div>
   );
