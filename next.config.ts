@@ -2,10 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [
-      
-    ],
-  },
+    domains: ['*','www.google.com'], // Permite qualquer domínio
+  }
 };
 
 export default nextConfig;
