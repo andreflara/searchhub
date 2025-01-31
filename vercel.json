@@ -1,0 +1,11 @@
+{
+  "builds": [
+    {
+      "src": "api/screenshot.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "env": {
+    "PLAYWRIGHT_BROWSERS_PATH": "/tmp/playwright"
+  }
+}
