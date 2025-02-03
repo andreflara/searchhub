@@ -3,11 +3,10 @@ import "./globals.css";
 
 
 export const metadata: Metadata = {
-  title: "Group Links",
-  description: "Grupo de Links",
+  title: "Search Link",
+  description: "home page para pesquisar e redirecionar para o site",
   icons: {
     icon: "/1.png",
-    
   },
 };
 
