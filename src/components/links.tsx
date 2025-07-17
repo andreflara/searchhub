@@ -1,9 +1,21 @@
-"use client";
-
-import type React from "react";
-import { useState, useEffect } from "react";
-import { ExternalLink, Plus, X, Edit, Trash2, Loader2 } from "lucide-react";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import {
+  ExternalLink,
+  Plus,
+  X,
+  Edit,
+  Trash2,
+  Loader2,
+  Search,
+  Filter,
+  Grid3X3,
+  List,
+  Star,
+  Eye,
+  Calendar,
+  Tag,
+  Link2,
+} from "lucide-react";
 
 type LinkType = {
   id: number | null;
@@ -12,17 +24,41 @@ type LinkType = {
   link: string;
   image: string;
   tags: string[];
+  createdAt: Date;
+  visits: number;
+  isFavorite: boolean;
 };
 
 type PlaceholderImageProps = {
   title: string;
 };
 
-const PlaceholderImage: React.FC<PlaceholderImageProps> = ({ title }) => (
-  <div className="w-full h-full font-bold text-xl flex items-center justify-center bg-gray-800 text-gray-400">
-    {title}
-  </div>
-);
+const PlaceholderImage: React.FC<PlaceholderImageProps> = ({ title }) => {
+  const colors = [
+    "bg-gradient-to-br from-purple-600 to-blue-600",
+    "bg-gradient-to-br from-pink-600 to-purple-600",
+    "bg-gradient-to-br from-blue-600 to-cyan-600",
+    "bg-gradient-to-br from-green-600 to-teal-600",
+    "bg-gradient-to-br from-orange-600 to-red-600",
+    "bg-gradient-to-br from-yellow-600 to-orange-600",
+  ];
+
+  const colorIndex = title.length % colors.length;
+  const initials = title
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div
+      className={`w-full h-full flex items-center justify-center ${colors[colorIndex]} text-white font-bold text-2xl`}
+    >
+      {initials || title[0]?.toUpperCase()}
+    </div>
+  );
+};
 
 export default function LinksGroup() {
   const [links, setLinks] = useState<LinkType[]>([]);
@@ -33,15 +69,33 @@ export default function LinksGroup() {
     link: "",
     image: "",
     tags: [],
+    createdAt: new Date(),
+    visits: 0,
+    isFavorite: false,
   });
   const [currentTag, setCurrentTag] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<
+    "recent" | "title" | "visits" | "favorites"
+  >("recent");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const storedLinks = localStorage.getItem("userLinks");
     if (storedLinks) {
-      setLinks(JSON.parse(storedLinks));
+      const parsed = JSON.parse(storedLinks);
+      setLinks(
+        parsed.map((link: any) => ({
+          ...link,
+          createdAt: new Date(link.createdAt || Date.now()),
+          visits: link.visits || 0,
+          isFavorite: link.isFavorite || false,
+        }))
+      );
     }
   }, []);
 
@@ -68,36 +122,27 @@ export default function LinksGroup() {
 
   const fetchUrlMetadata = async (url: string) => {
     try {
-        setIsLoading(true);
+      setIsLoading(true);
+      const formattedUrl = url.startsWith("http") ? url : `https://${url}`;
 
-        // Formata a URL se necessário
-        const formattedUrl = url.startsWith("http") ? url : `https://${url}`;
+      // Simulando API call - substitua pela sua implementação real
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        const response = await fetch(
-            `/api/opengraph?url=${encodeURIComponent(formattedUrl)}`
-        );
+      const domain = new URL(formattedUrl).hostname.replace("www.", "");
 
-        const data = await response.json();
-
-        if (data.error) {
-            console.error("Erro ao buscar OpenGraph:", data.error);
-            return;
-        }
-
-        setCurrentLink((prev) => ({
-            ...prev,
-            link: formattedUrl,
-            title: prev.title || data.title || getSiteNameFromUrl(formattedUrl),
-            description: data.description || "",
-            image: data.image || "",
-        }));
+      setCurrentLink((prev) => ({
+        ...prev,
+        link: formattedUrl,
+        title: prev.title || domain,
+        description: prev.description || `Content from ${domain}`,
+        image: prev.image || "",
+      }));
     } catch (error) {
-        console.error("Erro ao buscar metadados:", error);
+      console.error("Erro ao buscar metadados:", error);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-};
-
+  };
 
   const handleUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
@@ -105,16 +150,6 @@ export default function LinksGroup() {
 
     if (url?.startsWith("http")) {
       await fetchUrlMetadata(url);
-    }
-  };
-
-  const getSiteNameFromUrl = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      const hostname = urlObj.hostname;
-      return hostname.replace("www.", "");
-    } catch (error) {
-      return "";
     }
   };
 
@@ -129,7 +164,10 @@ export default function LinksGroup() {
         links.map((link) => (link.id === currentLink.id ? currentLink : link))
       );
     } else {
-      setLinks([...links, { ...currentLink, id: Date.now() }]);
+      setLinks([
+        ...links,
+        { ...currentLink, id: Date.now(), createdAt: new Date() },
+      ]);
     }
 
     setCurrentLink({
@@ -139,6 +177,9 @@ export default function LinksGroup() {
       link: "",
       image: "",
       tags: [],
+      createdAt: new Date(),
+      visits: 0,
+      isFavorite: false,
     });
     setShowForm(false);
   };
@@ -154,181 +195,462 @@ export default function LinksGroup() {
     }
   };
 
-  return (
-    <div className="min-h-screen relative mt-4">
-      <div className="mx-auto w-full">
-        <div className="grid gap-2 sm:grid-cols-4 lg:grid-cols-6">
-          {links.map((link) => (
-            <div key={link.id} className="relative group">
-              <Link
-                href={link.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <div className="rounded-md bg-black border border-gray-700 shadow-lg transition-shadow duration-300 overflow-hidden h-[225px] flex flex-col">
-                  <div className="relative w-full">
-                    {link.image ? (
-                      <img
-                        src={link.image}
-                        alt={link.title}
-                        className="object-cover h-[160px] w-full"
-                      />
-                    ) : (
-                      <PlaceholderImage title={link.title} />
-                    )}
+  const handleLinkClick = (link: LinkType) => {
+    setLinks(
+      links.map((l) => (l.id === link.id ? { ...l, visits: l.visits + 1 } : l))
+    );
+  };
 
-                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <ExternalLink className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="pl-2 flex flex-col flex-grow">
-                    <h2 className="text-md font-semibold group-hover:text-blue-500 transition-colors line-clamp-2">
-                      {link.title}
-                    </h2>
-                    <p className="text-gray-400 text-sm line-clamp-3 ">
-                      {link.description}
-                    </p>
-                    {link.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {link.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full text-xs"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Link>
-              <div className="absolute top-2 right-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleEdit(link)}
-                  className="bg-gray-800 p-1 rounded-full hover:bg-gray-600 transition opacity-0 group-hover:opacity-100"
+  const toggleFavorite = (id: number) => {
+    setLinks(
+      links.map((link) =>
+        link.id === id ? { ...link, isFavorite: !link.isFavorite } : link
+      )
+    );
+  };
+
+  const toggleTagFilter = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const getAllTags = () => {
+    const allTags = links.flatMap((link) => link.tags);
+    return [...new Set(allTags)];
+  };
+
+  const filteredAndSortedLinks = () => {
+    let filtered = links.filter((link) => {
+      const matchesSearch =
+        link.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        link.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesTags =
+        selectedTags.length === 0 ||
+        selectedTags.every((tag) => link.tags.includes(tag));
+
+      return matchesSearch && matchesTags;
+    });
+
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "visits":
+          return b.visits - a.visits;
+        case "favorites":
+          return Number(b.isFavorite) - Number(a.isFavorite);
+        default:
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+      }
+    });
+  };
+
+  const LinkCard = ({ link }: { link: LinkType }) => (
+    <div className="relative group">
+      <div className="rounded-xl bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-gray-600/50 overflow-hidden h-[280px] flex flex-col">
+        <div className="relative w-full h-[150px]">
+          {link.image ? (
+            <img
+              src={link.image}
+              alt={link.title}
+              className="object-cover h-full w-full transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <PlaceholderImage title={link.title} />
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+          <div className="absolute top-3 right-3 flex gap-2">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleFavorite(link.id!);
+              }}
+              className={`p-2 rounded-full backdrop-blur-sm transition-all ${
+                link.isFavorite
+                  ? "bg-yellow-500/90 text-white"
+                  : "bg-black/50 text-gray-300 hover:bg-yellow-500/90 hover:text-white"
+              }`}
+            >
+              <Star className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="absolute top-3 left-3 flex gap-2">
+            <div className="bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full text-xs text-gray-300 flex items-center gap-1">
+              <Eye className="w-3 h-3" />
+              {link.visits}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 flex flex-col flex-grow">
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
+              {link.title}
+            </h3>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleEdit(link);
+                }}
+                className="p-1.5 rounded-lg bg-gray-800/80 hover:bg-gray-700 transition-colors"
+              >
+                <Edit className="w-4 h-4 text-gray-300" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDelete(link.id!);
+                }}
+                className="p-1.5 rounded-lg bg-red-800/80 hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-4 h-4 text-gray-300" />
+              </button>
+            </div>
+          </div>
+
+          <p className="text-gray-400 text-sm line-clamp-2 mb-3 flex-grow">
+            {link.description}
+          </p>
+
+          {link.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {link.tags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-gray-700/80 text-gray-300 px-2 py-1 rounded-full text-xs backdrop-blur-sm"
                 >
-                  <Edit className="w-4 h-4 text-white" />
+                  {tag}
+                </span>
+              ))}
+              {link.tags.length > 3 && (
+                <span className="text-gray-500 text-xs">
+                  +{link.tags.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mt-auto">
+            <span className="text-gray-500 text-xs flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {new Date(link.createdAt).toLocaleDateString()}
+            </span>
+
+            <a
+              href={link.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => handleLinkClick(link)}
+              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium"
+            >
+              <span>Open</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+  const [query, setQuery] = useState("");
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (query.trim() !== "") {
+      window.location.href = `https://www.google.com/search?q=${encodeURIComponent(
+        query
+      )}`;
+    }
+  };
+
+  return (
+    <div className="min-h-screen  text-white p-6">
+      <div className="max-w-8xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            My Links
+          </h1>
+          <p className="text-gray-400">
+            Organize and access your favorite links
+          </p>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="relative flex-1 min-w-[300px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <form
+                onSubmit={handleSubmit}
+                className="flex w-full"
+                role="search"
+                aria-label="Formulário de pesquisa"
+              >
+                <input
+                  type="text"
+                  placeholder="Search links..."
+                  value={searchTerm && query}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setQuery(e.target.value);
+                  }}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
+                />
+              </form>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${
+                  showFilters
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-800/50 text-gray-300 hover:bg-gray-700/50"
+                }`}
+              >
+                <Filter className="w-5 h-5" />
+                Filters
+              </button>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+              >
+                <option value="recent">Recent</option>
+                <option value="title">Title</option>
+                <option value="visits">Most Visited</option>
+                <option value="favorites">Favorites</option>
+              </select>
+
+              <div className="flex border border-gray-700 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-3 transition-colors ${
+                    viewMode === "grid"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-800/50 text-gray-300 hover:bg-gray-700/50"
+                  }`}
+                >
+                  <Grid3X3 className="w-5 h-5" />
                 </button>
                 <button
-                  type="button"
-                  onClick={() => link.id && handleDelete(link.id)}
-                  className="bg-red-800 p-1 rounded-full hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
+                  onClick={() => setViewMode("list")}
+                  className={`p-3 transition-colors ${
+                    viewMode === "list"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-800/50 text-gray-300 hover:bg-gray-700/50"
+                  }`}
                 >
-                  <Trash2 className="w-4 h-4 text-white" />
+                  <List className="w-5 h-5" />
                 </button>
               </div>
             </div>
+          </div>
+
+          {showFilters && (
+            <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Tag className="w-5 h-5 text-gray-400" />
+                <span className="text-sm font-medium text-gray-300">
+                  Filter by tags:
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {getAllTags().map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTagFilter(tag)}
+                    className={`px-3 py-1 rounded-full text-sm transition-all ${
+                      selectedTags.includes(tag)
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/50"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Links Grid */}
+        <div
+          className={`${
+            viewMode === "grid"
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              : "space-y-4"
+          }`}
+        >
+          {filteredAndSortedLinks().map((link) => (
+            <LinkCard key={link.id} link={link} />
           ))}
         </div>
+
+        {filteredAndSortedLinks().length === 0 && (
+          <div className="text-center py-12">
+            <Link2 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 text-lg">
+              {searchTerm || selectedTags.length > 0
+                ? "No links found matching your criteria"
+                : "No links yet. Add your first link!"}
+            </p>
+          </div>
+        )}
       </div>
 
+      {/* Add Link Button */}
       <button
-        type="button"
-        className="fixed bottom-6 right-6 bg-gray-500 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform"
         onClick={() => setShowForm(!showForm)}
+        className="fixed bottom-8 right-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 hover:shadow-blue-500/25"
       >
         {showForm ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
       </button>
 
-      <div
-        className={`fixed bottom-16 right-6 bg-gray-800 p-6 rounded-lg shadow-xl transition-transform duration-300 ${
-          showForm
-            ? "translate-y-0 opacity-100"
-            : "translate-y-10 opacity-0 pointer-events-none"
-        }`}
-      >
-        <h2 className="text-2xl font-semibold mb-4">
-          {currentLink.id ? "Edit Link" : "Add New Link"}
-        </h2>
-        <div className="space-y-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="URL"
-              className="w-full p-2 rounded bg-gray-700 text-white pr-10"
-              value={currentLink.link}
-              onChange={handleUrlChange}
-            />
-            {isLoading && (
-              <div className="absolute right-2 top-2">
-                <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+      {/* Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900/95 backdrop-blur-md p-6 rounded-2xl shadow-2xl max-w-md w-full border border-gray-700/50">
+            <h2 className="text-2xl font-bold mb-6 text-center">
+              {currentLink.id ? "Edit Link" : "Add New Link"}
+            </h2>
+
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="https://example.com"
+                  className="w-full p-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                  value={currentLink.link}
+                  onChange={handleUrlChange}
+                />
+                {isLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <input
-            type="text"
-            placeholder="Title"
-            className="w-full p-2 rounded bg-gray-700 text-white"
-            value={currentLink.title}
-            onChange={(e) =>
-              setCurrentLink({ ...currentLink, title: e.target.value })
-            }
-          />
-          <textarea
-            placeholder="Description"
-            className="w-full p-2 rounded bg-gray-700 text-white resize-none h-20"
-            value={currentLink.description}
-            onChange={(e) =>
-              setCurrentLink({ ...currentLink, description: e.target.value })
-            }
-          />
-          <input
-            type="text"
-            placeholder="Image URL (optional)"
-            className="w-full p-2 rounded bg-gray-700 text-white"
-            value={currentLink.image}
-            onChange={(e) =>
-              setCurrentLink({ ...currentLink, image: e.target.value })
-            }
-          />
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Add tag"
-              className="flex-1 p-2 rounded bg-gray-700 text-white"
-              value={currentTag}
-              onChange={(e) => setCurrentTag(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleAddTag()}
-            />
-            <button
-              type="button"
-              onClick={handleAddTag}
-              className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 transition-colors"
-            >
-              Add
-            </button>
-          </div>
-          {currentLink.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {currentLink.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="bg-gray-700 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1"
+
+              <input
+                type="text"
+                placeholder="Title"
+                className="w-full p-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={currentLink.title}
+                onChange={(e) =>
+                  setCurrentLink({ ...currentLink, title: e.target.value })
+                }
+              />
+
+              <textarea
+                placeholder="Description (optional)"
+                className="w-full p-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-24"
+                value={currentLink.description}
+                onChange={(e) =>
+                  setCurrentLink({
+                    ...currentLink,
+                    description: e.target.value,
+                  })
+                }
+              />
+
+              <input
+                type="text"
+                placeholder="Image URL (optional)"
+                className="w-full p-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={currentLink.image}
+                onChange={(e) =>
+                  setCurrentLink({ ...currentLink, image: e.target.value })
+                }
+              />
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add tag"
+                  className="flex-1 p-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={currentTag}
+                  onChange={(e) => setCurrentTag(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleAddTag()}
+                />
+                <button
+                  onClick={handleAddTag}
+                  className="px-4 py-3 bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors text-white font-medium"
                 >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(tag)}
-                    className="hover:text-red-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
+                  Add
+                </button>
+              </div>
+
+              {currentLink.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {currentLink.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="bg-gray-700/80 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                    >
+                      {tag}
+                      <button
+                        onClick={() => handleRemoveTag(tag)}
+                        className="hover:text-red-400 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="favorite"
+                  checked={currentLink.isFavorite}
+                  onChange={(e) =>
+                    setCurrentLink({
+                      ...currentLink,
+                      isFavorite: e.target.checked,
+                    })
+                  }
+                  className="w-5 h-5 text-blue-600 bg-gray-800 border-gray-700 rounded focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="favorite"
+                  className="text-gray-300 flex items-center gap-2"
+                >
+                  <Star className="w-4 h-4" />
+                  Mark as favorite
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 px-4 py-3 bg-gray-700 rounded-xl hover:bg-gray-600 transition-colors text-white font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all text-white font-medium"
+                >
+                  {currentLink.id ? "Save Changes" : "Add Link"}
+                </button>
+              </div>
             </div>
-          )}
-          <button
-            type="button"
-            onClick={handleSave}
-            className="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700 transition-colors"
-          >
-            {currentLink.id ? "Save Changes" : "Add Link"}
-          </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
