@@ -44,6 +44,8 @@ const PlaceholderImage: React.FC<PlaceholderImageProps> = ({ title }) => {
   ];
 
   const colorIndex = title.length % colors.length;
+  
+  
   const initials = title
     .split(" ")
     .map((word) => word[0])
