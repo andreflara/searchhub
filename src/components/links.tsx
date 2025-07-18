@@ -250,47 +250,61 @@ export default function LinksGroup() {
     <div className="relative group">
       <div className="rounded-xl bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-gray-600/50 overflow-hidden h-[280px] flex flex-col">
         <div className="relative w-full h-[150px]">
-          {link.image ? (
-            <img
-              src={link.image}
-              alt={link.title}
-              className="object-cover h-full w-full transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <PlaceholderImage title={link.title} />
-          )}
+          <a
+            href={link.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => handleLinkClick(link)}
+          >
+            {link.image ? (
+              <img
+                src={link.image}
+                alt={link.title}
+                className="object-cover h-full w-full transition-transform duration-300 group-hover:scale-105"
+              />
+            ) : (
+              <PlaceholderImage title={link.title} />
+            )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-          <div className="absolute top-3 right-3 flex gap-2">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleFavorite(link.id!);
-              }}
-              className={`p-2 rounded-full backdrop-blur-sm transition-all ${
-                link.isFavorite
-                  ? "bg-yellow-500/90 text-white"
-                  : "bg-black/50 text-gray-300 hover:bg-yellow-500/90 hover:text-white"
-              }`}
-            >
-              <Star className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="absolute top-3 left-3 flex gap-2">
-            <div className="bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full text-xs text-gray-300 flex items-center gap-1">
-              <Eye className="w-3 h-3" />
-              {link.visits}
+            <div className="absolute top-3 right-3 flex gap-2">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleFavorite(link.id!);
+                }}
+                className={`p-2 rounded-full backdrop-blur-sm transition-all ${
+                  link.isFavorite
+                    ? "bg-yellow-500/90 text-white"
+                    : "bg-black/50 text-gray-300 hover:bg-yellow-500/90 hover:text-white"
+                }`}
+              >
+                <Star className="w-4 h-4" />
+              </button>
             </div>
-          </div>
+
+            <div className="absolute top-3 left-3 flex gap-2">
+              <div className="bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full text-xs text-gray-300 flex items-center gap-1">
+                <Eye className="w-3 h-3" />
+                {link.visits}
+              </div>
+            </div>
+          </a>
         </div>
 
         <div className="p-4 flex flex-col flex-grow">
           <div className="flex items-start justify-between mb-2">
             <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
-              {link.title}
+              <a
+                href={link.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleLinkClick(link)}
+              >
+                {link.title}
+              </a>
             </h3>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
