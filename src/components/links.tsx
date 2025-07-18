@@ -151,37 +151,45 @@ export default function LinksGroup() {
     }
   };
 
-  const handleSave = async () => {
-    if (!currentLink.title || !currentLink.link) {
-      alert("Title and URL are required!");
-      return;
-    }
+const handleSave = async () => {
+  if (!currentLink.title || !currentLink.link) {
+    alert("Title and URL are required!");
+    return;
+  }
 
-    if (currentLink.id !== null) {
-      setLinks(
-        links.map((link) => (link.id === currentLink.id ? currentLink : link))
-      );
-    } else {
-      setLinks([
-        ...links,
-        { ...currentLink, id: Date.now(), createdAt: new Date() },
-      ]);
-    }
+  setIsLoading(true); // Indicar carregamento enquanto a screenshot é gerada
 
-    setCurrentLink({
-      id: null,
-      title: "",
-      description: "",
-      link: "",
-      image: "",
-      tags: [],
-      createdAt: new Date(),
-      visits: 0,
-      isFavorite: false,
-    });
-    setShowForm(false);
+  // Tenta obter a screenshot antes de salvar
+  const screenshotUrl = await getScreenshot(currentLink.link);
+  const linkToSave = {
+    ...currentLink,
+    image: screenshotUrl || currentLink.image, // Usa a screenshot ou mantém a imagem existente
   };
 
+  if (linkToSave.id !== null) {
+    setLinks(
+      links.map((link) => (link.id === linkToSave.id ? linkToSave : link))
+    );
+  } else {
+    setLinks([...links, { ...linkToSave, id: Date.now(), createdAt: new Date() }]);
+  }
+
+  setCurrentLink({
+    id: null,
+    title: "",
+    description: "",
+    link: "",
+    image: "", // Limpa a imagem para o próximo formulário
+    tags: [],
+    createdAt: new Date(),
+    visits: 0,
+    isFavorite: false,
+  });
+  setShowForm(false);
+  setIsLoading(false); // Finaliza o carregamento
+};
+
+// ... (restante do seu código)
   const handleEdit = (link: LinkType) => {
     setCurrentLink(link);
     setShowForm(true);
@@ -246,25 +254,37 @@ export default function LinksGroup() {
     });
   };
 
-  const LinkCard = ({ link }: { link: LinkType }) => (
-    <div className="relative group">
-      <div className="rounded-xl bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-gray-600/50 overflow-hidden h-[280px] flex flex-col">
-        <div className="relative w-full h-[150px]">
-          <a
-            href={link.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => handleLinkClick(link)}
-          >
-            {link.image ? (
-              <img
-                src={link.image}
-                alt={link.title}
-                className="object-cover h-full w-full transition-transform duration-300 group-hover:scale-105"
-              />
-            ) : (
-              <PlaceholderImage title={link.title} />
-            )}
+  const getScreenshot = async (url: string): Promise<string | null> => {
+    try {
+      const res = await fetch(`/api/screenshot?url=${encodeURIComponent(url)}`);
+      const blob = await res.blob();
+      const imageUrl = URL.createObjectURL(blob);
+      return imageUrl;
+    } catch (err) {
+      console.error("Erro ao capturar screenshot", err);
+      return null;
+    }
+  };
+
+const LinkCard = ({ link }: { link: LinkType }) => (
+  <div className="relative group">
+    <div className="rounded-xl bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-gray-600/50 overflow-hidden h-[280px] flex flex-col">
+      <div className="relative w-full h-[150px] overflow-hidden">
+        <a
+          href={link.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => handleLinkClick(link)}
+        >
+          {link.image ? (
+            <img
+              src={link.image}
+              alt={link.title}
+              className="w-full h-full transition-transform duration-500 group-hover:scale-125"
+            />
+          ) : (
+            <PlaceholderImage title={link.title} />
+          )}
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
