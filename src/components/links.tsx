@@ -127,9 +127,7 @@ export default function LinksGroup() {
 
       // Simulando API call - substitua pela sua implementação real
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       const domain = new URL(formattedUrl).hostname.replace("www.", "");
-
       setCurrentLink((prev) => ({
         ...prev,
         link: formattedUrl,
@@ -138,7 +136,7 @@ export default function LinksGroup() {
         image: prev.image || "",
       }));
     } catch (error) {
-      console.error("Erro ao buscar metadados:", error);
+      console.error("Erro ao buscar metadados :", error);
     } finally {
       setIsLoading(false);
     }
