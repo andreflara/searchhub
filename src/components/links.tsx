@@ -387,7 +387,6 @@ export default function LinksGroup() {
         <div className="mb-6 space-y-4">
           <div className="flex flex-wrap gap-4 items-center">
             <div className="relative flex-1 min-w-[300px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <form
                 onSubmit={handleSubmit}
                 className="flex w-full"
@@ -405,6 +404,7 @@ export default function LinksGroup() {
                   className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
                 />
               </form>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             </div>
 
             <div className="flex gap-2">
