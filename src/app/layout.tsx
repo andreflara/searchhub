@@ -3,7 +3,7 @@ import "./globals.css";
 
 
 export const metadata: Metadata = {
-  title: "Search Link",
+  title: "Search Hub",
   description: "home page para pesquisar e redirecionar para o site",
   icons: {
     icon: "/1.png",
